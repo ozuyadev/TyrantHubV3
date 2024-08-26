@@ -40,56 +40,79 @@ end
 -- Attempt to load Solara module
 local SolaraModule = loadSolaraModule()
 
--- Catching Features
-catchingSection:Create("Toggle", "Magnets", function(state)
-    magnetEnabled = state
-end, { default = false })
+-- Updated Magnets Code
+local Workspace = game:GetService("Workspace")
+local Players = game:GetService("Players")
 
-catchingSection:Create("Slider", "Magnet Size", function(value)
-    magnetSize = value
-end, { min = 1, max = 35, default = 10 })
+local player = Players.LocalPlayer or Players.PlayerAdded:Wait()
+local character = player.Character or player.CharacterAdded:Wait()
+local HumanoidRootPart = character:FindFirstChild("HumanoidRootPart")
 
-catchingSection:Create("Toggle", "Auto-Catch", function(state)
-    autoCatchEnabled = state
-    if autoCatchEnabled then
-        autoCatch()
-    end
-end, { default = false })
+local magson = false
+local range = 10
+local delayon = false
+local delay = 0.1
 
-catchingSection:Create("Slider", "Auto-Catch Radius", function(value)
-    autoCatchRadius = value
-end, { min = 1, max = 15, default = 10 })
-
-catchingSection:Create("Toggle", "Show Hitbox", function(state)
-    showHitboxEnabled = state
-    if hitbox then
-        hitbox:Destroy()
-        hitbox = nil
-    end
-
-    if showHitboxEnabled then
-        local function updateHitbox()
-            local ball = workspace:FindFirstChild("Football")
-            if ball then
-                if not hitbox then
-                    hitbox = Instance.new("Part")
-                    hitbox.Size = Vector3.new(magnetSize * 1.5, magnetSize * 1.5, magnetSize * 1.5)
-                    hitbox.Transparency = 0.5
-                    hitbox.Anchored = true
-                    hitbox.CanCollide = false
-                    hitbox.Parent = workspace
+catchingSection:Create(
+    "Toggle",
+    "Magnets",
+    function(state)
+        magson = state
+        Workspace.ChildAdded:Connect(function(child)
+            if child.Name == "Football" and child:IsA("BasePart") and magson then
+                if delayon then
+                    wait(delay)
                 end
-                hitbox.CFrame = ball.CFrame
-            end
-        end
-
-        game:GetService("RunService").Stepped:Connect(function()
-            if showHitboxEnabled then
-                updateHitbox()
+                child.Size = Vector3.new(range, range, range)
+                child.CanCollide = false
+            elseif not magson then
+                child.Size = Vector3.new(0.85, 1.2, 0.85)
+                child.CanCollide = false
             end
         end)
-    end
-end, { default = false })
+    end,
+    {
+        default = false
+    }
+)
+
+catchingSection:Create(
+    "Slider",
+    "Range",
+    function(value)
+        range = value
+    end,
+    {
+        min = 0,
+        max = 25,
+        default = 5
+    }
+)
+
+catchingSection:Create(
+    "Toggle",
+    "Magnets Delay",
+    function(state)
+        delayon = state
+    end,
+    {
+        default = false
+    }
+)
+
+catchingSection:Create(
+    "Slider",
+    "Delay",
+    function(value)
+        delay = value
+    end,
+    {
+        min = 0,
+        max = 1,
+        default = 0,
+        increment = 0.1
+    }
+)
 
 -- Player Features
 local walkspeedEnabled = false
