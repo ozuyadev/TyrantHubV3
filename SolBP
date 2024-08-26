@@ -1,82 +1,49 @@
--- Anti-Cheat Bypass Code
-if game.PlaceId == 8204899140 then
-    local function bypassAntiCheat()
-        local Hooks = {}
-        local Targets = {}
-        local Whitelisted = {
-            {655, 775, 724, 633, 891},
-            {760, 760, 771, 665, 898},
-            {660, 759, 751, 863, 771},
-        }
-
-        local function TableEquality(x, y)
-            if (#x ~= #y) then
-                return false
-            end
-
-            for i, v in next, x do
-                if (y[i] ~= v) then
-                    return false
-                end
-            end
-
-            return true
-        end
-
-        for i, v in next, getgc(true) do
-            if type(v) == "function" then
-                local ScriptTrace, Line = pcall(debug.info, v, "sl")
-                if ScriptTrace then
-                    if string.find(ScriptTrace, "PlayerModule.LocalScript") and table.find({42, 51, 61}, Line) then
-                        table.insert(Targets, v)
-                    end
-                end
-            end
-
-            if type(v) == "table" and rawlen(v) == 19 and getrawmetatable(v) then
-                Targets.call = rawget(getrawmetatable(v), "call")
-            end
-        end
-
-        if not (Targets[1] and Targets[2] and Targets[3] and Targets.call) then
-            warn("Bypass failed to load properly")
-            return
-        end
-
-        local ScriptPath = pcall(debug.info, Targets[1], "s")
-        if not ScriptPath then
-            warn("Failed to get script path")
-            return
-        end
-
-        Hooks.debug_info = hookfunction(debug.info, function(...)
-            if not checkcaller() and TableEquality({...}, {2, "s"}) then
-                return ScriptPath
-            end
-
-            return Hooks.debug_info(...)
-        end)
-
-        hookfunction(Targets[1], function() end)
-        hookfunction(Targets[2], function() end)
-        hookfunction(Targets[3], function() end)
-
-        Hooks.call = hookfunction(Targets.call, function(self, ...)
-            if
-                TableEquality(Whitelisted[1], {...}) or
-                TableEquality(Whitelisted[2], {...}) or
-                TableEquality(Whitelisted[3], {...})
-            then
-                return Hooks.call(self, ...)
-            end
-        end)
-
-        task.wait(3)
+local function disableAntiCheat()
+    local AntiCheat = game:GetService("ReplicatedStorage"):FindFirstChild("AntiCheat") 
+    if AntiCheat then
+        AntiCheat:Destroy()
     end
-
-    -- Execute bypass function
-    bypassAntiCheat()
 end
+
+local function spoofActions()
+    local Player = game.Players.LocalPlayer
+    local mt = getrawmetatable(game)
+    local old = mt.__index
+    setreadonly(mt, false)
+    
+    mt.__index = newcclosure(function(self, key)
+        if tostring(self) == "Humanoid" and (key == "WalkSpeed" or key == "JumpPower") then
+            return old(self, key)
+        end
+        return old(self, key)
+    end)
+    
+    setreadonly(mt, true)
+end
+
+local function bypassServerChecks()
+    local originalNamecall
+    originalNamecall = hookmetamethod(game, "__namecall", function(self, ...)
+        local method = getnamecallmethod()
+        local args = {...}
+
+        if tostring(self) == "RemoteFunction" or tostring(self) == "RemoteEvent" then
+            if method == "FireServer" then
+                -- Modify or block the data here before sending to server
+            end
+        end
+
+        return originalNamecall(self, unpack(args))
+    end)
+end
+
+local function initializeBypass()
+    disableAntiCheat()
+    spoofActions()
+    bypassServerChecks()
+end
+
+initializeBypass()
 
 -- UI Library and Script Code
 local library = loadstring(game:HttpGet("https://raw.githubusercontent.com/teppyboy/RbxScripts/master/Misc/UI_Libraries/Zypher/Library.lua"))()
