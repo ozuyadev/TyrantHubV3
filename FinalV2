@@ -21,11 +21,13 @@ local miscSection = miscCategory:CreateSection("Misc Features")
 -- Catching features variables
 local magnetEnabled = false
 local magnetActivated = false
-local autoCatchEnabled = false
 local magnetSize = 10
+local autoCatchEnabled = false
 local autoCatchRadius = 10
 local showHitboxEnabled = false
 local hitbox
+local magnetDelayEnabled = false
+local magnetDelay = 0.1
 
 -- Function to handle the Solara module loading with debug
 local function loadSolaraModule()
@@ -95,53 +97,45 @@ catchingSection:Create("Toggle", "Show Hitbox", function(state)
     end
 end, { default = false })
 
--- Magnet variables and functions
-local magson = false
-local range = 10
-local delayon = false
-local delay = 0.1
+-- Magnet activation on click
+local UIS = game:GetService("UserInputService")
+UIS.InputBegan:Connect(function(input, gameProcessed)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        magnetActivated = magnetEnabled
+    end
+end)
 
-catchingSection:Create("Toggle", "Magnets", function(Value)
-    magson = Value
-end, { default = false })
+UIS.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        magnetActivated = false
+    end
+end)
 
-catchingSection:Create("Slider", "Range", function(Value)
-    range = Value
-end, { min = 0, max = 35, default = 10, increment = 0.1, valueName = "Range..." })
-
-catchingSection:Create("Toggle", "Magnets Delay", function(Value)
-    delayon = Value
-end, { default = false })
-
-catchingSection:Create("Slider", "Delay", function(Value)
-    delay = Value
-end, { min = 0, max = 1, default = 0, increment = 0.1 })
-
--- Magnet functionality
-local Workspace = game:GetService("Workspace")
-
-local function handleMagnetEffect()
-    if magson then
-        for _, child in ipairs(Workspace:GetChildren()) do
+game:GetService("RunService").Stepped:Connect(function()
+    if magnetActivated and magnetEnabled then
+        for _, child in ipairs(workspace:GetChildren()) do
             if child.Name == "Football" and child:IsA("BasePart") then
-                if delayon then
-                    wait(delay)
+                if magnetDelayEnabled then
+                    wait(magnetDelay)
                 end
-                child.Size = Vector3.new(range, range, range)
+                local playerHRP = game.Players.LocalPlayer.Character and game.Players.LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+                if playerHRP then
+                    child.CFrame = playerHRP.CFrame
+                end
+                child.Size = Vector3.new(magnetSize, magnetSize, magnetSize)
                 child.CanCollide = false
             end
         end
-    else
-        for _, child in ipairs(Workspace:GetChildren()) do
-            if child.Name == "Football" and child:IsA("BasePart") then
-                child.Size = Vector3.new(0.85, 1.2, 0.85)
-                child.CanCollide = true
-            end
-        end
     end
-end
+end)
 
-game:GetService("RunService").Stepped:Connect(handleMagnetEffect)
+catchingSection:Create("Toggle", "Magnet Delay", function(state)
+    magnetDelayEnabled = state
+end, { default = false })
+
+catchingSection:Create("Slider", "Magnet Delay", function(value)
+    magnetDelay = value
+end, { min = 0, max = 1, default = 0.1 })
 
 -- Player Features
 local walkspeedEnabled = false
@@ -185,66 +179,60 @@ end, { min = 50, max = 60, default = 50 })
 local ballLandingPredictionEnabled = false
 local predictionColor = Color3.fromRGB(255, 255, 255)
 
-local function beamProjectile(g, v0, x0, t1)
-    -- Beam Projectile Logic
-    local c = 0.5 * 0.5 * 0.5
-    local p3 = 0.5 * g * t1 * t1 + v0 * t1 + x0
-    local p2 = p3 - (g * t1 * t1 + v0 * t1) / 3
-    local p1 = (c * g * t1 * t1 + 0.5 * v0 * t1 + x0 - c * (x0 + p3)) / (3 * c) - p2
+-- Function to draw ball trajectory prediction
+local function drawPrediction()
+    local function beamProjectile(g, v0, x0, t1)
+        local c = 0.5 * 0.5 * 0.5
+        local p3 = 0.5 * g * t1 * t1 + v0 * t1 + x0
+        local p2 = p3 - (g * t1 * t1 + v0 * t1) / 3
+        local p1 = (c * g * t1 * t1 + 0.5 * v0 * t1 + x0 - c * (x0 + p3)) / (3 * c) - p2
 
-    local curve0 = (p1 - x0).magnitude
-    local curve1 = (p2 - p3).magnitude
+        local curve0 = (p1 - x0).magnitude
+        local curve1 = (p2 - p3).magnitude
 
-    local b = (x0 - p3).unit
-    local r1 = (p1 - x0).unit
-    local u1 = r1:Cross(b).unit
-    local r2 = (p2 - p3).unit
-    local u2 = r2:Cross(b).unit
-    b = u1:Cross(r1).unit
+        local b = (x0 - p3).unit
+        local r1 = (p1 - x0).unit
+        local u1 = r1:Cross(b).unit
+        local r2 = (p2 - p3).unit
+        local u2 = r2:Cross(b).unit
+        b = u1:Cross(r1).unit
 
-    local cf1 = CFrame.new(x0.x, x0.y, x0.z, r1.x, u1.x, b.x, r1.y, u1.y, b.y, r1.z, u1.z, b.z)
-    local cf2 = CFrame.new(p3.x, p3.y, p3.z, r2.x, u2.x, b.x, r2.y, u2.y, b.y, r2.z, b.z)
+        local cf1 = CFrame.new(x0.x, x0.y, x0.z, r1.x, u1.x, b.x, r1.y, u1.y, b.y, r1.z, u1.z, b.z)
+        local cf2 = CFrame.new(p3.x, p3.y, p3.z, r2.x, u2.x, b.x, r2.y, u2.y, b.y, r2.z, u2.z, b.z)
 
-    return curve0, -curve1, cf1, cf2
-end
-
-local function startPrediction()
-    local Players = game:GetService("Players")
-    local LocalPlayer = Players.LocalPlayer
-    local RunService = game:GetService("RunService")
+        return curve0, -curve1, cf1, cf2
+    end
 
     local function onBallAdded(b)
         if b.Name == "Football" and b:IsA("BasePart") then
             task.wait()
             local vel = b.Velocity
             local pos = b.Position
-            local c0 = b.CFrame
-            local beamLength, velocity = beamProjectile(196.2, vel, pos, 2)
-            local pcf1, pcf2 = c0:lerp(b.CFrame, 0.3), c0:lerp(b.CFrame, 0.7)
-            local prevPos, prevPos2 = c0.p, pcf1.p
-            local t = RunService.RenderStepped:Connect(function()
-                local newPos = (pcf1.p - prevPos).magnitude / (pcf2.p - prevPos2).magnitude
-                if newPos < beamLength then
-                    prevPos = prevPos + newPos
-                    prevPos2 = prevPos2 + newPos
-                    if newPos > 0 then
-                        b.Position = b.Position + velocity * 0.1
-                    end
-                end
-            end)
+            local g = Vector3.new(0, -workspace.Gravity, 0) -- Gravity vector
+            local c0, c1, cf1, cf2 = beamProjectile(g, vel, pos, 1)
+            local ballLine = Instance.new("Beam")
+            ballLine.Parent = b
+            ballLine.Color = ColorSequence.new(predictionColor)
+            ballLine.Transparency = NumberSequence.new(0.5)
+            ballLine.Width0 = 0.1
+            ballLine.Width1 = 0.1
+            ballLine.Attachment0 = Instance.new("Attachment", b)
+            ballLine.Attachment1 = Instance.new("Attachment", b)
+            ballLine.Attachment0.Position = Vector3.new(0, 0, 0)
+            ballLine.Attachment1.Position = Vector3.new(0, 0, 0)
         end
     end
 
-    workspace.ChildAdded:Connect(onBallAdded)
+    game:GetService("Workspace").ChildAdded:Connect(onBallAdded)
 end
 
-miscSection:Create("Toggle", "Ball Landing Prediction", function(state)
+miscSection:Create("Toggle", "Ball Prediction", function(state)
     ballLandingPredictionEnabled = state
     if state then
-        startPrediction()
+        drawPrediction()
     end
 end, { default = false })
 
-miscSection:Create("Color", "Prediction Color", function(value)
-    predictionColor = value
+miscSection:Create("ColorPicker", "Prediction Color", function(color)
+    predictionColor = color
 end, { default = Color3.fromRGB(255, 255, 255) })
