@@ -1,23 +1,32 @@
 local function disableAntiCheat()
-    local AntiCheat = game:GetService("ReplicatedStorage"):FindFirstChild("AntiCheat") 
+    local AntiCheat = game:GetService("ReplicatedStorage"):FindFirstChild("AntiCheat")
     if AntiCheat then
         AntiCheat:Destroy()
+    else
+        print("AntiCheat module not found. Skipping...")
     end
 end
 
 local function spoofActions()
     local Player = game.Players.LocalPlayer
+    local Character = Player.Character or Player.CharacterAdded:Wait()
+    local Humanoid = Character:FindFirstChildOfClass("Humanoid")
+
+    if not Humanoid then
+        print("Humanoid not found. Skipping action spoofing...")
+        return
+    end
+
     local mt = getrawmetatable(game)
     local old = mt.__index
+
     setreadonly(mt, false)
-    
     mt.__index = newcclosure(function(self, key)
-        if tostring(self) == "Humanoid" and (key == "WalkSpeed" or key == "JumpPower") then
+        if self == Humanoid and (key == "WalkSpeed" or key == "JumpPower") then
             return old(self, key)
         end
         return old(self, key)
     end)
-    
     setreadonly(mt, true)
 end
 
@@ -29,7 +38,8 @@ local function bypassServerChecks()
 
         if tostring(self) == "RemoteFunction" or tostring(self) == "RemoteEvent" then
             if method == "FireServer" then
-                -- Modify or block the data here before sending to server
+                -- Modify or block the data here before sending to the server
+                print("Intercepted FireServer call.")
             end
         end
 
