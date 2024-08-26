@@ -1,56 +1,59 @@
-local function disableAntiCheat()
-    local AntiCheat = game:GetService("ReplicatedStorage"):FindFirstChild("AntiCheat")
-    if AntiCheat then
-        AntiCheat:Destroy()
-    else
-        print("AntiCheat module not found. Skipping...")
+local function safeWaitForChild(parent, childName, maxRetries)
+    local retries = 0
+    local child = parent:FindFirstChild(childName)
+    while not child and retries < maxRetries do
+        retries = retries + 1
+        task.wait(0.1)
+        child = parent:FindFirstChild(childName)
     end
-end
-
-local function spoofActions()
-    local Player = game.Players.LocalPlayer
-    local Character = Player.Character or Player.CharacterAdded:Wait()
-    local Humanoid = Character:FindFirstChildOfClass("Humanoid")
-
-    if not Humanoid then
-        print("Humanoid not found. Skipping action spoofing...")
-        return
-    end
-
-    local mt = getrawmetatable(game)
-    local old = mt.__index
-
-    setreadonly(mt, false)
-    mt.__index = newcclosure(function(self, key)
-        if self == Humanoid and (key == "WalkSpeed" or key == "JumpPower") then
-            return old(self, key)
-        end
-        return old(self, key)
-    end)
-    setreadonly(mt, true)
-end
-
-local function bypassServerChecks()
-    local originalNamecall
-    originalNamecall = hookmetamethod(game, "__namecall", function(self, ...)
-        local method = getnamecallmethod()
-        local args = {...}
-
-        if tostring(self) == "RemoteFunction" or tostring(self) == "RemoteEvent" then
-            if method == "FireServer" then
-                -- Modify or block the data here before sending to the server
-                print("Intercepted FireServer call.")
-            end
-        end
-
-        return originalNamecall(self, unpack(args))
-    end)
+    return child
 end
 
 local function initializeBypass()
-    disableAntiCheat()
+    local player = game.Players.LocalPlayer
+    local character = safeWaitForChild(player, "Character", 50) or player.Character
+    local humanoid = safeWaitForChild(character, "Humanoid", 50)
+    local humanoidRootPart = safeWaitForChild(character, "HumanoidRootPart", 50)
+    
+    if not (player and character and humanoid and humanoidRootPart) then
+        warn("Failed to initialize bypass due to missing components.")
+        return
+    end
+    
+    -- Ensure character models are properly handled
+    local modelCheck = function()
+        if character.Parent ~= workspace then
+            character = player.Character or player.CharacterAdded:Wait()
+            humanoid = character:WaitForChild("Humanoid")
+            humanoidRootPart = character:WaitForChild("HumanoidRootPart")
+        end
+    end
+
+    local function spoofActions()
+        modelCheck()
+        
+        -- Bypass logic specific to public match or modified player models
+        -- Add your bypass logic here
+        -- Example: bypass anti-cheat measures
+        
+        if character:FindFirstChild("HumanoidRootPart") then
+            -- Adjustments based on public match conditions
+            -- Implement your anti-cheat bypass modifications here
+            print("Bypass active for public match.")
+        else
+            warn("Failed to detect HumanoidRootPart, bypass not applied.")
+        end
+    end
+
+    -- Connect to events that might reset the character or change models
+    player.CharacterAdded:Connect(function(newCharacter)
+        character = newCharacter
+        humanoid = safeWaitForChild(character, "Humanoid", 50)
+        humanoidRootPart = safeWaitForChild(character, "HumanoidRootPart", 50)
+        spoofActions()
+    end)
+
     spoofActions()
-    bypassServerChecks()
 end
 
 initializeBypass()
