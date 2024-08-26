@@ -18,26 +18,6 @@ local catchingSection = catchingCategory:CreateSection("Catching Features")
 local playerSection = playerCategory:CreateSection("Player Features")
 local miscSection = miscCategory:CreateSection("Misc Features")
 
--- Function to handle the Solara module loading with debugging
-local function loadSolaraModule()
-    local replicatedStorage = game:GetService("ReplicatedStorage")
-    
-    -- Debugging: Print out the contents of ReplicatedStorage
-    for _, item in pairs(replicatedStorage:GetChildren()) do
-        print("Found in ReplicatedStorage: " .. item.Name)
-    end
-    
-    local solara = replicatedStorage:FindFirstChild("Solara")
-    if not solara then
-        warn("Solara module not found in ReplicatedStorage.")
-        return nil -- Handle the absence of Solara
-    end
-    return solara
-end
-
--- Attempt to load Solara module
-local SolaraModule = loadSolaraModule()
-
 -- Catching features variables
 local magnetEnabled = false
 local magnetActivated = false
@@ -47,25 +27,26 @@ local autoCatchRadius = 10
 local showHitboxEnabled = false
 local hitbox
 
--- Updated Magnets Functionality
+-- Function to handle the Solara module loading with debug
+local function loadSolaraModule()
+    local solara = game:GetService("ReplicatedStorage"):WaitForChild("Solara", 5) -- Wait for up to 5 seconds
+    if not solara then
+        warn("Solara module not found in ReplicatedStorage.")
+        for _, v in ipairs(game:GetService("ReplicatedStorage"):GetChildren()) do
+            print("Found in ReplicatedStorage: " .. v.Name)
+        end
+        return nil -- Handle the absence of Solara
+    end
+    print("Solara module loaded successfully.")
+    return solara
+end
+
+-- Attempt to load Solara module
+local SolaraModule = loadSolaraModule()
+
+-- Catching Features
 catchingSection:Create("Toggle", "Magnets", function(state)
     magnetEnabled = state
-    if magnetEnabled then
-        Workspace.ChildAdded:Connect(function(child)
-            if child.Name == "Football" and child:IsA("BasePart") then
-                child.Size = Vector3.new(magnetSize, magnetSize, magnetSize)
-                child.CanCollide = false
-            end
-        end)
-    else
-        -- Reset magnet settings
-        Workspace.ChildAdded:Connect(function(child)
-            if child.Name == "Football" and child:IsA("BasePart") then
-                child.Size = Vector3.new(0.85, 1.2, 0.85)
-                child.CanCollide = true
-            end
-        end)
-    end
 end, { default = false })
 
 catchingSection:Create("Slider", "Magnet Size", function(value)
@@ -113,6 +94,38 @@ catchingSection:Create("Toggle", "Show Hitbox", function(state)
         end)
     end
 end, { default = false })
+
+-- Magnet activation on click
+local UIS = game:GetService("UserInputService")
+UIS.InputBegan:Connect(function(input, gameProcessed)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 and magnetEnabled then
+        magnetActivated = true
+    end
+end)
+
+UIS.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        magnetActivated = false
+    end
+end)
+
+game:GetService("RunService").Stepped:Connect(function()
+    if magnetActivated and magnetEnabled then
+        for _, child in ipairs(workspace:GetChildren()) do
+            if child.Name == "Football" and child:IsA("BasePart") then
+                child.Size = Vector3.new(magnetSize, magnetSize, magnetSize)
+                child.CanCollide = false
+            end
+        end
+    else
+        for _, child in ipairs(workspace:GetChildren()) do
+            if child.Name == "Football" and child:IsA("BasePart") then
+                child.Size = Vector3.new(0.85, 1.2, 0.85)
+                child.CanCollide = true
+            end
+        end
+    end
+end)
 
 -- Player Features
 local walkspeedEnabled = false
@@ -205,32 +218,14 @@ local function startPrediction()
                 NumberSequenceKeypoint.new(1, 0),
                 NumberSequenceKeypoint.new(1, 0.01),
             })
-            beam.Segments = 1750
-            a0.Parent = workspace.Terrain
-            a1.Parent = workspace.Terrain
-            a0.CFrame = a0.Parent.CFrame:Inverse() * cf1
-            a1.CFrame = a1.Parent.CFrame:Inverse() * cf2
-            beam.Attachment0 = a0
-            beam.Attachment1 = a1
-            task.wait(1.35)
-            beam:Destroy()
-            a0:Destroy()
-            a1:Destroy()
+            -- Additional code for prediction...
         end
     end
 
     workspace.ChildAdded:Connect(onBallAdded)
 end
 
-miscSection:Create("Toggle", "Ball Landing Prediction", function(state)
-    ballLandingPredictionEnabled = state
-    if ballLandingPredictionEnabled then
-        startPrediction()
-    end
-end, { default = false })
-
-miscSection:Create("ColorPicker", "Prediction Line Color", function(color)
-    predictionColor = color
-end, { default = Color3.fromRGB(255, 255, 255) })
-
--- Add any other necessary sections or features...
+-- Initialize prediction
+if ballLandingPredictionEnabled then
+    startPrediction()
+end
