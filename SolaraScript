@@ -1,0 +1,240 @@
+local Solara = require(game:GetService("ReplicatedStorage"):WaitForChild("Solara"))
+local library = loadstring(game:HttpGet("https://raw.githubusercontent.com/teppyboy/RbxScripts/master/Misc/UI_Libraries/Zypher/Library.lua"))()
+
+local main = library:CreateMain({
+    projName = "Tyrant Hub",
+    Resizable = true,
+    MinSize = UDim2.new(0, 400, 0, 400),
+    MaxSize = UDim2.new(0, 750, 0, 500),
+})
+
+local catchingCategory = main:CreateCategory("Catching")
+local playerCategory = main:CreateCategory("Player")
+local miscCategory = main:CreateCategory("Misc")
+
+local catchingSection = catchingCategory:CreateSection("Catching Features")
+
+local magnetEnabled = false
+local magnetActivated = false
+local autoCatchEnabled = false
+local magnetSize = 10
+local autoCatchRadius = 10
+local showHitboxEnabled = false
+local hitbox
+
+catchingSection:Create(
+    "Toggle",
+    "Magnets",
+    function(state)
+        magnetEnabled = state
+        Solara:SetData("MagnetEnabled", magnetEnabled)
+    end,
+    {
+        default = false
+    }
+)
+
+catchingSection:Create(
+    "Slider",
+    "Magnet Size",
+    function(value)
+        magnetSize = value
+        Solara:SetData("MagnetSize", magnetSize)
+    end,
+    {
+        min = 1,
+        max = 35,
+        default = 10
+    }
+)
+
+catchingSection:Create(
+    "Toggle",
+    "Auto-Catch",
+    function(state)
+        autoCatchEnabled = state
+        Solara:SetData("AutoCatchEnabled", autoCatchEnabled)
+        if autoCatchEnabled then
+            Solara:AutoCatch(autoCatchRadius) -- Solara API for auto-catching
+        end
+    end,
+    {
+        default = false
+    }
+)
+
+catchingSection:Create(
+    "Slider",
+    "Auto-Catch Radius",
+    function(value)
+        autoCatchRadius = value
+        Solara:SetData("AutoCatchRadius", autoCatchRadius)
+    end,
+    {
+        min = 1,
+        max = 15,
+        default = 10
+    }
+)
+
+catchingSection:Create(
+    "Toggle",
+    "Show Hitbox",
+    function(state)
+        showHitboxEnabled = state
+        Solara:SetData("ShowHitboxEnabled", showHitboxEnabled)
+        if hitbox then
+            hitbox:Destroy()
+            hitbox = nil
+        end
+
+        if showHitboxEnabled then
+            local function updateHitbox()
+                local ball = workspace:FindFirstChild("Football")
+                if ball then
+                    if not hitbox then
+                        hitbox = Instance.new("Part")
+                        hitbox.Size = Vector3.new(magnetSize * 1.5, magnetSize * 1.5, magnetSize * 1.5)
+                        hitbox.Transparency = 0.5
+                        hitbox.Anchored = true
+                        hitbox.CanCollide = false
+                        hitbox.Parent = workspace
+                    end
+                    hitbox.CFrame = ball.CFrame
+                end
+            end
+
+            game:GetService("RunService").Stepped:Connect(function()
+                if showHitboxEnabled then
+                    updateHitbox()
+                end
+            end)
+        end
+    end,
+    {
+        default = false
+    }
+)
+
+local playerSection = playerCategory:CreateSection("Player Features")
+
+local walkspeedEnabled = false
+local jumpPowerEnabled = false
+local walkspeedValue = 20
+local jumpPowerValue = 50
+
+playerSection:Create(
+    "Toggle",
+    "Walkspeed",
+    function(state)
+        walkspeedEnabled = state
+        Solara:SetData("WalkspeedEnabled", walkspeedEnabled)
+        if walkspeedEnabled then
+            Solara:SetWalkSpeed(walkspeedValue) -- Solara API for setting walkspeed
+        else
+            Solara:ResetWalkSpeed() -- Solara API for resetting walkspeed
+        end
+    end,
+    {
+        default = false
+    }
+)
+
+playerSection:Create(
+    "Slider",
+    "Walkspeed Value",
+    function(value)
+        walkspeedValue = value
+        Solara:SetData("WalkspeedValue", walkspeedValue)
+        if walkspeedEnabled then
+            Solara:SetWalkSpeed(walkspeedValue) -- Update walkspeed using Solara API
+        end
+    end,
+    {
+        min = 20,
+        max = 23,
+        default = 20
+    }
+)
+
+playerSection:Create(
+    "Toggle",
+    "JumpPower",
+    function(state)
+        jumpPowerEnabled = state
+        Solara:SetData("JumpPowerEnabled", jumpPowerEnabled)
+        if jumpPowerEnabled then
+            Solara:SetJumpPower(jumpPowerValue) -- Solara API for setting jump power
+        else
+            Solara:ResetJumpPower() -- Solara API for resetting jump power
+        end
+    end,
+    {
+        default = false
+    }
+)
+
+playerSection:Create(
+    "Slider",
+    "JumpPower Value",
+    function(value)
+        jumpPowerValue = value
+        Solara:SetData("JumpPowerValue", jumpPowerValue)
+        if jumpPowerEnabled then
+            Solara:SetJumpPower(jumpPowerValue) -- Update jump power using Solara API
+        end
+    end,
+    {
+        min = 50,
+        max = 60,
+        default = 50
+    }
+)
+
+local miscSection = miscCategory:CreateSection("Misc Features")
+
+local ballLandingPredictionEnabled = false
+local predictionColor = Color3.fromRGB(255, 255, 255)
+
+local function startPrediction()
+    local function onBallAdded(ball)
+        if ball.Name == "Football" and ball:IsA("BasePart") then
+            task.wait()
+            Solara:PredictBallLanding(ball, predictionColor) -- Solara API for ball landing prediction
+        end
+    end
+
+    workspace.ChildAdded:Connect(onBallAdded)
+end
+
+miscSection:Create(
+    "Toggle",
+    "Ball Landing Prediction",
+    function(state)
+        ballLandingPredictionEnabled = state
+        Solara:SetData("BallLandingPredictionEnabled", ballLandingPredictionEnabled)
+        if ballLandingPredictionEnabled then
+            startPrediction()
+        end
+    end,
+    {
+        default = false
+    }
+)
+
+miscSection:Create(
+    "ColorPicker",
+    "Prediction Color",
+    function(color)
+        predictionColor = color
+        Solara:SetData("PredictionColor", predictionColor)
+    end,
+    {
+        default = Color3.fromRGB(255, 255, 255)
+    }
+)
+
+-- Make sure to initialize Solara when the script starts
+Solara:Initialize()
+
+print("Tyrant Hub script loaded with full Solara support.")
