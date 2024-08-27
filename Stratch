@@ -40,10 +40,10 @@ local function handleMagnets()
                     wait(delay)
                 end
                 child.Size = Vector3.new(range, range, range)
-                child.CanCollide = false  -- Make hitbox non-colliding
+                child.CanCollide = false  -- Ensure the ball's hitbox does not collide with other objects
             else
                 child.Size = Vector3.new(0.85, 1.2, 0.85)
-                child.CanCollide = false  -- Ensure hitbox remains non-colliding
+                child.CanCollide = false  -- Ensure the ball's hitbox remains non-colliding
             end
         end
     end)
