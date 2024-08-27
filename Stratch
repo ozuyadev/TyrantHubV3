@@ -1,30 +1,37 @@
 -- Load Zypher UI Library
-local library = loadstring(game:HttpGet("https://raw.githubusercontent.com/GhostDuckyy/UI-Libraries/blob/main/Zypher/source.lua"))()
-local main = library:CreateMain({
-    projName = "Tyrant Hub",
-    Resizable = true,
-    MinSize = UDim2.new(0, 400, 0, 400),
-    MaxSize = UDim2.new(0, 750, 0, 500),
-})
+local library = loadstring(game:HttpGet("https://raw.githubusercontent.com/GhostDuckyy/UI-Libraries/main/Zypher/source.lua"))()
+print(library)  -- Debug: Check if library is loaded
 
--- Create tabs and sections
+if not library then
+    error("Failed to load Zypher UI Library")
+end
+
+-- Create Main UI Window
+local success, main = pcall(function()
+    return library:CreateMain({
+        projName = "Tyrant Hub",
+        Resizable = true,
+        MinSize = UDim2.new(0, 400, 0, 400),
+        MaxSize = UDim2.new(0, 750, 0, 500),
+    })
+end)
+
+if not success then
+    error("Failed to create main UI window: " .. main)
+end
+
+-- Create Tabs and Sections
 local catchingCategory = main:CreateCategory("Catching")
 local catchingSection = catchingCategory:CreateSection("Magnets")
 
--- Initialize variables and services
+-- Initialize Variables
 local Workspace = game:GetService("Workspace")
-local Players = game:GetService("Players")
-
-local player = Players.LocalPlayer or Players.PlayerAdded:Wait()
-local character = player.Character or player.CharacterAdded:Wait()
-local HumanoidRootPart = character:FindFirstChild("HumanoidRootPart")
-
 local magson = false
 local range = 10
 local delayon = false
 local delay = 0.1
 
--- Function to handle magnets
+-- Function to Handle Magnets
 local function handleMagnets()
     Workspace.ChildAdded:Connect(function(child)
         if child.Name == "Football" and child:IsA("BasePart") then
@@ -33,31 +40,54 @@ local function handleMagnets()
                     wait(delay)
                 end
                 child.Size = Vector3.new(range, range, range)
-                child.CanCollide = false
-                child.CanCollide = false -- Ensure no collision with the player's character
-                -- Optional: Set custom properties or materials if needed to avoid interaction
+                child.CanCollide = false  -- Set hitbox to no collision
             else
                 child.Size = Vector3.new(0.85, 1.2, 0.85)
-                child.CanCollide = true -- Restore collision
+                child.CanCollide = false  -- Ensure no collision when magnets are off
             end
         end
     end)
 end
 
--- Add UI elements
-catchingSection:Create("Toggle", "Magnets", function(state)
-    magson = state
-    handleMagnets()
-end, { default = false })
+-- Add UI Elements for Magnets
+local successToggle, errToggle = pcall(function()
+    catchingSection:Create("Toggle", "Magnets", function(state)
+        magson = state
+        handleMagnets()
+    end, { default = false })
+end)
 
-catchingSection:Create("Slider", "Range", function(value)
-    range = value
-end, { min = 1, max = 25, default = 10, increment = 0.1, valueName = "Range..." })
+if not successToggle then
+    error("Failed to create Magnets toggle: " .. errToggle)
+end
 
-catchingSection:Create("Toggle", "Magnets Delay", function(state)
-    delayon = state
-end, { default = false })
+local successSliderRange, errSliderRange = pcall(function()
+    catchingSection:Create("Slider", "Range", function(value)
+        range = value
+    end, { min = 1, max = 25, default = 10, increment = 1, valueName = "Range" })
+end)
 
-catchingSection:Create("Slider", "Delay", function(value)
-    delay = value
-end, { min = 0, max = 1, default = 0, increment = 0.1, valueName = "Delay" })
+if not successSliderRange then
+    error("Failed to create Range slider: " .. errSliderRange)
+end
+
+local successToggleDelay, errToggleDelay = pcall(function()
+    catchingSection:Create("Toggle", "Magnets Delay", function(state)
+        delayon = state
+    end, { default = false })
+end)
+
+if not successToggleDelay then
+    error("Failed to create Magnets Delay toggle: " .. errToggleDelay)
+end
+
+local successSliderDelay, errSliderDelay = pcall(function()
+    catchingSection:Create("Slider", "Delay", function(value)
+        delay = value
+    end, { min = 0, max = 1, default = 0.1, increment = 0.1, valueName = "Delay" })
+end)
+
+if not successSliderDelay then
+    error("Failed to create Delay slider: " .. errSliderDelay)
+end
+
