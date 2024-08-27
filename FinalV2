@@ -22,12 +22,9 @@ local miscSection = miscCategory:CreateSection("Misc Features")
 local magnetEnabled = false
 local magnetActivated = false
 local magnetSize = 10
-local autoCatchEnabled = false
-local autoCatchRadius = 10
-local showHitboxEnabled = false
-local hitbox
 local magnetDelayEnabled = false
 local magnetDelay = 0.1
+local magnetRange = 35
 local magnetSmoothSpeed = 5
 
 -- Function to handle the Solara module loading with debug
@@ -47,7 +44,7 @@ end
 -- Attempt to load Solara module
 local SolaraModule = loadSolaraModule()
 
--- Catching Features
+-- Catching Features UI
 catchingSection:Create("Toggle", "Magnets", function(state)
     magnetEnabled = state
 end, { default = false })
@@ -56,47 +53,17 @@ catchingSection:Create("Slider", "Magnet Size", function(value)
     magnetSize = value
 end, { min = 1, max = 35, default = 10 })
 
-catchingSection:Create("Toggle", "Auto-Catch", function(state)
-    autoCatchEnabled = state
-    if autoCatchEnabled then
-        autoCatch()
-    end
+catchingSection:Create("Toggle", "Magnets Delay", function(state)
+    magnetDelayEnabled = state
 end, { default = false })
 
-catchingSection:Create("Slider", "Auto-Catch Radius", function(value)
-    autoCatchRadius = value
-end, { min = 1, max = 15, default = 10 })
+catchingSection:Create("Slider", "Magnet Delay", function(value)
+    magnetDelay = value
+end, { min = 0, max = 1, default = 0.1 })
 
-catchingSection:Create("Toggle", "Show Hitbox", function(state)
-    showHitboxEnabled = state
-    if hitbox then
-        hitbox:Destroy()
-        hitbox = nil
-    end
-
-    if showHitboxEnabled then
-        local function updateHitbox()
-            local ball = workspace:FindFirstChild("Football")
-            if ball then
-                if not hitbox then
-                    hitbox = Instance.new("Part")
-                    hitbox.Size = Vector3.new(magnetSize * 1.5, magnetSize * 1.5, magnetSize * 1.5)
-                    hitbox.Transparency = 0.5
-                    hitbox.Anchored = true
-                    hitbox.CanCollide = false
-                    hitbox.Parent = workspace
-                end
-                hitbox.CFrame = ball.CFrame
-            end
-        end
-
-        game:GetService("RunService").Stepped:Connect(function()
-            if showHitboxEnabled then
-                updateHitbox()
-            end
-        end)
-    end
-end, { default = false })
+catchingSection:Create("Slider", "Magnet Smooth Speed", function(value)
+    magnetSmoothSpeed = value
+end, { min = 1, max = 10, default = 5 })
 
 -- Magnet activation on click
 local UIS = game:GetService("UserInputService")
@@ -119,38 +86,30 @@ game:GetService("RunService").Stepped:Connect(function()
                 if magnetDelayEnabled then
                     wait(magnetDelay)
                 end
-                
+
                 local playerHRP = game.Players.LocalPlayer.Character and game.Players.LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
                 if playerHRP then
-                    -- Smoothly move the ball towards the player's hands
                     local ballPosition = child.Position
                     local targetPosition = playerHRP.Position + Vector3.new(0, 3, 0) -- Adjusted for better alignment
                     local direction = (targetPosition - ballPosition).unit
                     local distance = (targetPosition - ballPosition).magnitude
-                    local speed = math.min(distance, magnetSmoothSpeed)
-                    child.CFrame = CFrame.new(ballPosition + direction * speed, targetPosition)
-                end
 
-                child.Size = Vector3.new(magnetSize, magnetSize, magnetSize)
-                child.CanCollide = false
+                    if distance < magnetRange then
+                        local smoothDistance = math.min(distance, magnetSmoothSpeed)
+                        child.CFrame = CFrame.new(ballPosition + direction * smoothDistance, targetPosition)
+                        child.Size = Vector3.new(magnetSize, magnetSize, magnetSize)
+                        child.CanCollide = false
+                    else
+                        child.Size = Vector3.new(0.85, 1.2, 0.85)
+                        child.CanCollide = false
+                    end
+                end
             end
         end
     end
 end)
 
-catchingSection:Create("Toggle", "Magnet Delay", function(state)
-    magnetDelayEnabled = state
-end, { default = false })
-
-catchingSection:Create("Slider", "Magnet Delay", function(value)
-    magnetDelay = value
-end, { min = 0, max = 1, default = 0.1 })
-
-catchingSection:Create("Slider", "Magnet Smooth Speed", function(value)
-    magnetSmoothSpeed = value
-end, { min = 1, max = 10, default = 5 })
-
--- Player Features
+-- Player Features UI
 local walkspeedEnabled = false
 local jumpPowerEnabled = false
 local walkspeedValue = 20
@@ -188,7 +147,7 @@ playerSection:Create("Slider", "JumpPower Value", function(value)
     end
 end, { min = 50, max = 60, default = 50 })
 
--- Misc Features
+-- Misc Features UI
 local ballLandingPredictionEnabled = false
 local predictionColor = Color3.fromRGB(255, 255, 255)
 
