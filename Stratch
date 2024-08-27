@@ -1,13 +1,10 @@
 -- Load Zypher UI Library
-local success, library = pcall(function()
-    return loadstring(game:HttpGet("https://raw.githubusercontent.com/GhostDuckyy/UI-Libraries/main/Zypher/source.lua"))()
-end)
+local library = loadstring(game:HttpGet("https://raw.githubusercontent.com/GhostDuckyy/UI-Libraries/main/Zypher/source.lua"))()
+print(library)  -- Debug: Check if library is loaded
 
-if not success or not library then
-    error("Failed to load Zypher UI Library. Please check the URL or the library availability.")
+if not library then
+    error("Failed to load Zypher UI Library")
 end
-
-print("Zypher UI Library loaded successfully")
 
 -- Create Main UI Window
 local success, main = pcall(function()
@@ -19,21 +16,13 @@ local success, main = pcall(function()
     })
 end)
 
-if not success or not main then
-    error("Failed to create main UI window: " .. (main or "Unknown error"))
+if not success then
+    error("Failed to create main UI window: " .. tostring(main))
 end
-
-print("Main UI window created successfully")
 
 -- Create Tabs and Sections
-local catchingCategory = pcall(function() return main:CreateCategory("Catching") end)
-local catchingSection = pcall(function() return catchingCategory:CreateSection("Magnets") end)
-
-if not catchingCategory or not catchingSection then
-    error("Failed to create UI categories or sections: " .. (catchingSection or "Unknown error"))
-end
-
-print("UI categories and sections created successfully")
+local catchingCategory = main:CreateCategory("Catching")
+local catchingSection = catchingCategory:CreateSection("Magnets")
 
 -- Initialize Variables
 local Workspace = game:GetService("Workspace")
@@ -51,17 +40,17 @@ local function handleMagnets()
                     wait(delay)
                 end
                 child.Size = Vector3.new(range, range, range)
-                child.CanCollide = false  -- Set hitbox to no collision
+                child.CanCollide = false  -- Make hitbox non-colliding
             else
                 child.Size = Vector3.new(0.85, 1.2, 0.85)
-                child.CanCollide = false  -- Ensure no collision when magnets are off
+                child.CanCollide = false  -- Ensure hitbox remains non-colliding
             end
         end
     end)
 end
 
 -- Add UI Elements for Magnets
-local successToggle = pcall(function()
+local successToggle, errToggle = pcall(function()
     catchingSection:Create("Toggle", "Magnets", function(state)
         magson = state
         handleMagnets()
@@ -69,37 +58,36 @@ local successToggle = pcall(function()
 end)
 
 if not successToggle then
-    error("Failed to create Magnets toggle.")
+    error("Failed to create Magnets toggle: " .. tostring(errToggle))
 end
 
-local successSliderRange = pcall(function()
+local successSliderRange, errSliderRange = pcall(function()
     catchingSection:Create("Slider", "Range", function(value)
         range = value
     end, { min = 1, max = 25, default = 10, increment = 1, valueName = "Range" })
 end)
 
 if not successSliderRange then
-    error("Failed to create Range slider.")
+    error("Failed to create Range slider: " .. tostring(errSliderRange))
 end
 
-local successToggleDelay = pcall(function()
+local successToggleDelay, errToggleDelay = pcall(function()
     catchingSection:Create("Toggle", "Magnets Delay", function(state)
         delayon = state
     end, { default = false })
 end)
 
 if not successToggleDelay then
-    error("Failed to create Magnets Delay toggle.")
+    error("Failed to create Magnets Delay toggle: " .. tostring(errToggleDelay))
 end
 
-local successSliderDelay = pcall(function()
+local successSliderDelay, errSliderDelay = pcall(function()
     catchingSection:Create("Slider", "Delay", function(value)
         delay = value
     end, { min = 0, max = 1, default = 0.1, increment = 0.1, valueName = "Delay" })
 end)
 
 if not successSliderDelay then
-    error("Failed to create Delay slider.")
+    error("Failed to create Delay slider: " .. tostring(errSliderDelay))
 end
 
-print("UI elements added successfully")
