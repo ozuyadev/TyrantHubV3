@@ -1,0 +1,269 @@
+-- Load Zypher UI Library
+local library = loadstring(game:HttpGet("https://raw.githubusercontent.com/teppyboy/RbxScripts/master/Misc/UI_Libraries/Zypher/Library.lua"))()
+
+-- Create main UI
+local main = library:CreateMain({
+    projName = "Tyrant Hub",
+    Resizable = true,
+    MinSize = UDim2.new(0, 400, 0, 400),
+    MaxSize = UDim2.new(0, 750, 0, 500),
+})
+
+-- Categories and Sections
+local catchingCategory = main:CreateCategory("Catching")
+local playerCategory = main:CreateCategory("Player")
+local miscCategory = main:CreateCategory("Misc")
+
+local catchingSection = catchingCategory:CreateSection("Catching Features")
+local playerSection = playerCategory:CreateSection("Player Features")
+local miscSection = miscCategory:CreateSection("Misc Features")
+
+-- Catching features variables
+local magnetEnabled = false
+local magnetActivated = false
+local autoCatchEnabled = false
+local magnetSize = 10
+local autoCatchRadius = 10
+local showHitboxEnabled = false
+local hitbox
+
+-- Function to handle the Solara module loading with debug
+local function loadSolaraModule()
+    local solara = game:GetService("ReplicatedStorage"):WaitForChild("Solara", 5) -- Wait for up to 5 seconds
+    if not solara then
+        warn("Solara module not found in ReplicatedStorage.")
+        for _, v in ipairs(game:GetService("ReplicatedStorage"):GetChildren()) do
+            print("Found in ReplicatedStorage: " .. v.Name)
+        end
+        return nil -- Handle the absence of Solara
+    end
+    print("Solara module loaded successfully.")
+    return solara
+end
+
+-- Attempt to load Solara module
+local SolaraModule = loadSolaraModule()
+
+-- Catching Features
+catchingSection:Create("Toggle", "Magnets", function(state)
+    magnetEnabled = state
+end, { default = false })
+
+catchingSection:Create("Slider", "Magnet Size", function(value)
+    magnetSize = value
+end, { min = 1, max = 35, default = 10 })
+
+catchingSection:Create("Toggle", "Auto-Catch", function(state)
+    autoCatchEnabled = state
+    if autoCatchEnabled then
+        autoCatch()
+    end
+end, { default = false })
+
+catchingSection:Create("Slider", "Auto-Catch Radius", function(value)
+    autoCatchRadius = value
+end, { min = 1, max = 15, default = 10 })
+
+catchingSection:Create("Toggle", "Show Hitbox", function(state)
+    showHitboxEnabled = state
+    if hitbox then
+        hitbox:Destroy()
+        hitbox = nil
+    end
+
+    if showHitboxEnabled then
+        local function updateHitbox()
+            local ball = workspace:FindFirstChild("Football")
+            if ball then
+                if not hitbox then
+                    hitbox = Instance.new("Part")
+                    hitbox.Size = Vector3.new(magnetSize * 1.5, magnetSize * 1.5, magnetSize * 1.5)
+                    hitbox.Transparency = 0.5
+                    hitbox.Anchored = true
+                    hitbox.CanCollide = false
+                    hitbox.Parent = workspace
+                end
+                hitbox.CFrame = ball.CFrame
+            end
+        end
+
+        game:GetService("RunService").Stepped:Connect(function()
+            if showHitboxEnabled then
+                updateHitbox()
+            end
+        end)
+    end
+end, { default = false })
+
+-- Magnet activation on click
+local UIS = game:GetService("UserInputService")
+UIS.InputBegan:Connect(function(input, gameProcessed)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 and magnetEnabled then
+        magnetActivated = true
+    end
+end)
+
+UIS.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        magnetActivated = false
+    end
+end)
+
+game:GetService("RunService").Stepped:Connect(function()
+    if magnetActivated and magnetEnabled then
+        for _, child in ipairs(workspace:GetChildren()) do
+            if child.Name == "Football" and child:IsA("BasePart") then
+                child.Size = Vector3.new(magnetSize, magnetSize, magnetSize)
+                child.CanCollide = false
+            end
+        end
+    else
+        for _, child in ipairs(workspace:GetChildren()) do
+            if child.Name == "Football" and child:IsA("BasePart") then
+                child.Size = Vector3.new(0.85, 1.2, 0.85)
+                child.CanCollide = true
+            end
+        end
+    end
+end)
+
+-- Player Features
+local walkspeedEnabled = false
+local jumpPowerEnabled = false
+local walkspeedValue = 20
+local jumpPowerValue = 50
+
+-- Ensure this code is running as a LocalScript
+local function updatePlayerFeatures()
+    local Players = game:GetService("Players")
+    local LocalPlayer = Players.LocalPlayer
+
+    if not LocalPlayer then
+        warn("LocalPlayer is not available.")
+        return
+    end
+
+    local function updateWalkspeed()
+        local humanoid = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
+        if humanoid then
+            humanoid.WalkSpeed = walkspeedEnabled and walkspeedValue or 16
+        end
+    end
+
+    playerSection:Create("Toggle", "Walkspeed", function(state)
+        walkspeedEnabled = state
+        updateWalkspeed()
+    end, { default = false })
+
+    playerSection:Create("Slider", "Walkspeed Value", function(value)
+        walkspeedValue = value
+        updateWalkspeed()
+    end, { min = 20, max = 23, default = 20 })
+
+    playerSection:Create("Toggle", "JumpPower", function(state)
+        jumpPowerEnabled = state
+        local humanoid = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
+        if humanoid then
+            humanoid.JumpPower = jumpPowerEnabled and jumpPowerValue or 50
+        end
+    end, { default = false })
+
+    playerSection:Create("Slider", "JumpPower Value", function(value)
+        jumpPowerValue = value
+        local humanoid = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
+        if jumpPowerEnabled and humanoid then
+            humanoid.JumpPower = jumpPowerValue
+        end
+    end, { min = 50, max = 60, default = 50 })
+end
+
+updatePlayerFeatures()
+
+-- Misc Features
+local ballLandingPredictionEnabled = false
+local predictionColor = Color3.fromRGB(255, 255, 255)
+
+local function beamProjectile(g, v0, x0, t1)
+    -- Beam Projectile Logic
+    local c = 0.5 * 0.5 * 0.5
+    local p3 = 0.5 * g * t1 * t1 + v0 * t1 + x0
+    local p2 = p3 - (g * t1 * t1 + v0 * t1) / 3
+    local p1 = (c * g * t1 * t1 + 0.5 * v0 * t1 + x0 - c * (x0 + p3)) / (3 * c) - p2
+
+    local curve0 = (p1 - x0).magnitude
+    local curve1 = (p2 - p3).magnitude
+
+    local b = (x0 - p3).unit
+    local r1 = (p1 - x0).unit
+    local u1 = r1:Cross(b).unit
+    local r2 = (p2 - p3).unit
+    local u2 = r2:Cross(b).unit
+    b = u1:Cross(r1).unit
+
+    local cf1 = CFrame.new(x0.x, x0.y, x0.z, r1.x, u1.x, b.x, r1.y, u1.y, b.y, r1.z, u1.z, b.z)
+    local cf2 = CFrame.new(p3.x, p3.y, p3.z, r2.x, u2.x, b.x, r2.y, u2.y, b.y, r2.z, u2.z, b.z)
+
+    return curve0, -curve1, cf1, cf2
+end
+
+local function startPrediction()
+    local Players = game:GetService("Players")
+    local LocalPlayer = Players.LocalPlayer
+    local RunService = game:GetService("RunService")
+
+    local function onBallAdded(b)
+        if b.Name == "Football" and b:IsA("BasePart") then
+            task.wait()
+            local vel = b.Velocity
+            local pos = b.Position
+            local c0, c1, cf1, cf2 = beamProjectile(Vector3.new(0, -28, 0), vel, pos, 10)
+            local beam = Instance.new("Beam")
+            local a0 = Instance.new("Attachment")
+            local a1 = Instance.new("Attachment")
+            beam.Color = ColorSequence.new(predictionColor)
+            beam.Transparency = NumberSequence.new(0, 0)
+            beam.CurveSize0 = c0
+            beam.CurveSize1 = c1
+            beam.Name = "Hitbox"
+            beam.Parent = workspace.Terrain
+            beam.Transparency = NumberSequence.new({
+                NumberSequenceKeypoint.new(0, 1),
+                NumberSequenceKeypoint.new(0.01, 0),
+                NumberSequenceKeypoint.new(1, 0),
+                NumberSequenceKeypoint.new(1, 0.01),
+            })
+            beam.Segments = 1750
+            a0.Parent = workspace.Terrain
+            a1.Parent = workspace.Terrain
+            a0.CFrame = a0.Parent.CFrame:Inverse() * cf1
+            a1.CFrame = a1.Parent.CFrame:Inverse() * cf2
+            beam.Attachment0 = a0
+            beam.Attachment1 = a1
+            beam.Width0 = 1
+            beam.Width1 = 1
+
+            task.wait(7)
+            beam:Destroy()
+            a0:Destroy()
+            a1:Destroy()
+        end
+    end
+
+    workspace.ChildAdded:Connect(onBallAdded)
+end
+
+miscSection:Create("Toggle", "Ball Landing Prediction", function(state)
+    ballLandingPredictionEnabled = state
+    if ballLandingPredictionEnabled then
+        startPrediction()
+    end
+end, { default = false })
+
+miscSection:Create("ColorPicker", "Prediction Beam Color", function(color)
+    predictionColor = color
+end, { default = Color3.fromRGB(255, 255, 255) })
+
+-- Ensure Solara-related features are only activated if the module is available
+if SolaraModule then
+    -- Add Solara-related code here, leveraging the loaded module
+end
