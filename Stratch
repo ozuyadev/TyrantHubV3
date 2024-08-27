@@ -17,15 +17,24 @@ local success, main = pcall(function()
 end)
 
 if not success then
-    error("Failed to create main UI window: " .. tostring(main))
+    error("Failed to create main UI window: " .. main)
 end
 
 -- Create Tabs and Sections
 local catchingCategory = main:CreateCategory("Catching")
 local catchingSection = catchingCategory:CreateSection("Magnets")
 
+local playerCategory = main:CreateCategory("Player")
+local playerSection = playerCategory:CreateSection("Player Settings")
+
 -- Initialize Variables
 local Workspace = game:GetService("Workspace")
+local Players = game:GetService("Players")
+local player = Players.LocalPlayer
+local character = player.Character or player.CharacterAdded:Wait()
+local humanoid = character:FindFirstChildOfClass("Humanoid")
+
+-- Initialize Variables for Magnets
 local magson = false
 local range = 10
 local delayon = false
@@ -40,10 +49,10 @@ local function handleMagnets()
                     wait(delay)
                 end
                 child.Size = Vector3.new(range, range, range)
-                child.CanCollide = false  -- Ensure the ball's hitbox does not collide with other objects
+                child.CanCollide = false
             else
                 child.Size = Vector3.new(0.85, 1.2, 0.85)
-                child.CanCollide = false  -- Ensure the ball's hitbox remains non-colliding
+                child.CanCollide = true
             end
         end
     end)
@@ -58,7 +67,7 @@ local successToggle, errToggle = pcall(function()
 end)
 
 if not successToggle then
-    error("Failed to create Magnets toggle: " .. tostring(errToggle))
+    error("Failed to create Magnets toggle: " .. errToggle)
 end
 
 local successSliderRange, errSliderRange = pcall(function()
@@ -68,7 +77,7 @@ local successSliderRange, errSliderRange = pcall(function()
 end)
 
 if not successSliderRange then
-    error("Failed to create Range slider: " .. tostring(errSliderRange))
+    error("Failed to create Range slider: " .. errSliderRange)
 end
 
 local successToggleDelay, errToggleDelay = pcall(function()
@@ -78,7 +87,7 @@ local successToggleDelay, errToggleDelay = pcall(function()
 end)
 
 if not successToggleDelay then
-    error("Failed to create Magnets Delay toggle: " .. tostring(errToggleDelay))
+    error("Failed to create Magnets Delay toggle: " .. errToggleDelay)
 end
 
 local successSliderDelay, errSliderDelay = pcall(function()
@@ -88,6 +97,58 @@ local successSliderDelay, errSliderDelay = pcall(function()
 end)
 
 if not successSliderDelay then
-    error("Failed to create Delay slider: " .. tostring(errSliderDelay))
+    error("Failed to create Delay slider: " .. errSliderDelay)
 end
 
+-- Add UI Elements for Player Settings
+local successToggleJump, errToggleJump = pcall(function()
+    playerSection:Create("Toggle", "JumpPower", function(state)
+        if state then
+            humanoid.JumpPower = humanoid.JumpPower
+        else
+            humanoid.JumpPower = 50
+        end
+    end, { default = false })
+end)
+
+if not successToggleJump then
+    error("Failed to create JumpPower toggle: " .. errToggleJump)
+end
+
+local successSliderJump, errSliderJump = pcall(function()
+    playerSection:Create("Slider", "JumpPower", function(value)
+        if humanoid then
+            humanoid.JumpPower = value
+        end
+    end, { min = 50, max = 60, default = 50, increment = 1, valueName = "JumpPower" })
+end)
+
+if not successSliderJump then
+    error("Failed to create JumpPower slider: " .. errSliderJump)
+end
+
+local successToggleWalk, errToggleWalk = pcall(function()
+    playerSection:Create("Toggle", "WalkSpeed", function(state)
+        if state then
+            humanoid.WalkSpeed = humanoid.WalkSpeed
+        else
+            humanoid.WalkSpeed = 20
+        end
+    end, { default = false })
+end)
+
+if not successToggleWalk then
+    error("Failed to create WalkSpeed toggle: " .. errToggleWalk)
+end
+
+local successSliderWalk, errSliderWalk = pcall(function()
+    playerSection:Create("Slider", "WalkSpeed", function(value)
+        if humanoid then
+            humanoid.WalkSpeed = value
+        end
+    end, { min = 20, max = 23, default = 20, increment = 1, valueName = "WalkSpeed" })
+end)
+
+if not successSliderWalk then
+    error("Failed to create WalkSpeed slider: " .. errSliderWalk)
+end
