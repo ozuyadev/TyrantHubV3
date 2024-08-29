@@ -1,0 +1,111 @@
+-- Initializing Services and Variables
+local RunService = game:GetService("RunService")
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+local Humanoid = Character:FindFirstChildOfClass("Humanoid")
+local Ball = Workspace:WaitForChild("Football", math.huge)
+
+-- Bypass Variables
+local isBypassing = false
+
+-- List of Valid Humanoid States for Toggling (Excluding Jumping for Jump Feature Compatibility)
+local validStates = {
+    Enum.HumanoidStateType.FallingDown,
+    Enum.HumanoidStateType.Running,
+    Enum.HumanoidStateType.RunningNoPhysics,
+    Enum.HumanoidStateType.Climbing,
+    Enum.HumanoidStateType.StrafingNoPhysics,
+    Enum.HumanoidStateType.Physics,
+    Enum.HumanoidStateType.GettingUp,
+    -- Jumping state is now excluded to preserve jump functionality
+    Enum.HumanoidStateType.Landed,
+    Enum.HumanoidStateType.Flying,
+    Enum.HumanoidStateType.Freefall,
+    Enum.HumanoidStateType.Seated,
+    Enum.HumanoidStateType.PlatformStanding,
+    Enum.HumanoidStateType.Swimming
+}
+
+-- Utility Functions
+local function randomizeValue(value, variance)
+    return value + math.random(-variance, variance)
+end
+
+local function simulateHumanLikeMovement()
+    local newWalkSpeed = randomizeValue(Humanoid.WalkSpeed, 0.2)
+    local newJumpPower = randomizeValue(Humanoid.JumpPower, 0.2)
+    Humanoid.WalkSpeed = newWalkSpeed
+    Humanoid.JumpPower = newJumpPower
+end
+
+-- Anti-Cheat Bypass Function
+local function enableAntiCheatBypass()
+    if isBypassing then return end
+    isBypassing = true
+    print("[Checkpoint 1] Starting Anti-Cheat Bypass...")
+
+    -- Disable Humanoid's default state checks that might detect altered WalkSpeed and JumpPower
+    local success = true
+    for _, state in pairs(validStates) do
+        local stateSuccess, errorMsg = pcall(function()
+            Humanoid:SetStateEnabled(state, false)
+        end)
+        if not stateSuccess then
+            print("[Checkpoint 2] Failed to disable state:", state, errorMsg)
+            success = false
+        else
+            print("[Checkpoint 2] Disabled state:", state)
+        end
+    end
+    
+    if not success then
+        print("[Bypass Failed] Unable to disable all necessary states.")
+        return
+    end
+    
+    print("[Checkpoint 3] Humanoid states disabled successfully.")
+
+    -- Connect ball size and magnet changes to avoid detection
+    local connectionSuccess, connectionError = pcall(function()
+        if Ball and Ball.Parent == Workspace then
+            RunService.RenderStepped:Connect(function()
+                pcall(function()  -- Adding more error handling
+                    Ball.CanCollide = false
+                    Ball.Size = Vector3.new(randomizeValue(0.85, 0.05), randomizeValue(1.2, 0.05), randomizeValue(0.85, 0.05)) -- Slight randomization
+                end)
+            end)
+        else
+            error("Ball not found or not in Workspace.")
+        end
+    end)
+
+    if not connectionSuccess then
+        print("[Checkpoint 4] Failed to connect ball size adjustments:", connectionError)
+        print("[Bypass Failed] Unable to connect ball size adjustments.")
+        return
+    end
+
+    print("[Checkpoint 4] Ball size and magnet changes connected successfully.")
+
+    -- Adjust WalkSpeed and JumpPower to emulate natural movement
+    local movementConnectionSuccess, movementConnectionError = pcall(function()
+        while isBypassing do
+            simulateHumanLikeMovement()
+            wait(0.1)
+        end
+    end)
+
+    if not movementConnectionSuccess then
+        print("[Checkpoint 5] Failed to simulate human-like movement:", movementConnectionError)
+        print("[Bypass Failed] Unable to adjust movement parameters.")
+        return
+    end
+
+    print("[Checkpoint 5] Human-like movement simulation active.")
+    
+    print("[Bypass Successful] Anti-Cheat Bypass enabled successfully!")
+end
+
+-- Start Anti-Cheat Bypass Automatically
+enableAntiCheatBypass()
